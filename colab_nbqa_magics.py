@@ -17,12 +17,12 @@ def get_notebook_name(timeout: float = 2.0) -> str:
     def _capture(name):
         notebook_name["value"] = name
 
-    get_ipython().kernel.register_callback('notebook_name', _capture)
+    _colab_output.register_callback('notebook_name', _capture)
 
     js = """
     (async () => {
       const name = document.title.split(' - ')[0];
-      google.colab.kernel.invokeFunction('notebook_name', [name], {});
+      await google.colab.kernel.invokeFunction('notebook_name', [name], {});
     })();
     """
     _colab_output.eval_js(js)

@@ -68,7 +68,7 @@ def nbqa(line):
 
     # Once nbqa has finished, reload the notebook tab so changes appear
     try:
-        colab_output.eval_js("google.colab.notebook.reload()")
+        colab_output.eval_js("window.location.reload()")
     except Exception:
         # If eval_js fails, just remind the user to refresh manually
-        print("Could not auto-reload. Please refresh the browser tab to see changes.")
+        print("Could not auto-reload. Please refresh the browser manually.")

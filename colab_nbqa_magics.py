@@ -4,7 +4,7 @@ import os
 import shlex
 import subprocess
 from IPython.core.magic import register_line_magic
-from google.colab import drive
+from google.colab import drive, output as colab_output
 
 # Mount Google Drive (if not already mounted)
 try:
@@ -65,3 +65,10 @@ def nbqa(line):
         print(proc.stdout)
     if proc.stderr:
         print(proc.stderr)
+
+    # Once nbqa has finished, reload the notebook tab so changes appear
+    try:
+        colab_output.eval_js("google.colab.notebook.reload()")
+    except Exception:
+        # If eval_js fails, just remind the user to refresh manually
+        print("Could not auto-reload. Please refresh the browser tab to see changes.")

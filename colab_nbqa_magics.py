@@ -81,7 +81,7 @@ def nbqa(line):
             print(e)
             return
 
-    cmd = ["nbqa", tool] + tool_args + [file_path]
+    cmd = ["nbqa", tool] + [file_path] + tool_args 
     print("Running:", " ".join(shlex.quote(x) for x in cmd))
 
     proc = subprocess.run(cmd, check=False, capture_output=True, text=True)

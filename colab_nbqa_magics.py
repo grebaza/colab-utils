@@ -35,7 +35,7 @@ def locate_nb(notebook_name=None, set_singular=True):
             nb_dir = os.path.dirname(found_files[0])
             if set_singular:
                 print(f'Singular location found, setting directory: {nb_dir}')
-                os.chdir(nb_dir)
+                # os.chdir(nb_dir)
                 return found_files[0]
         elif not found_files:
             print(f'Notebook "{notebook_name}" not found in {paths}.')

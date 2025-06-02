@@ -49,6 +49,22 @@ def locate_nb(notebook_name=None, set_singular=True):
         return None
     return None
 
+def get_nb_name() -> str:
+"""
+Retrieves the current notebook name in Google Colab using JavaScript.
+Returns:
+    str: The name of the current notebook (e.g., 'MyNotebook.ipynb'), or None if an error occurs.
+"""
+try:
+    # Execute JavaScript to get the notebook name from the Jupyter environment
+    notebook_name = google.colab.output.eval_js(
+        'Jupyter.notebook.notebook_name'
+    )
+    return notebook_name
+except Exception as e:
+    print(f"Error retrieving notebook name: {e}")
+    return None
+
 def get_notebook_name() -> str:
     """
     Return the current Colab notebook’s filename (without path),

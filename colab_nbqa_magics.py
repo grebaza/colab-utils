@@ -1,44 +1,18 @@
 # colab_nbqa_magics.py
 
 import os
-import time
-from pathlib import Path
+import subprocess
 from IPython.core.magic import register_line_magic
-from IPython import get_ipython
-from google.colab import output as _colab_output
 
-def get_notebook_name(timeout: float = 2.0) -> str:
+def get_notebook_name() -> str:
     """
-    Return the current Colab notebook’s filename (without path).
-    Uses JavaScript to read document.title, with a metadata fallback.
+    Return the current Colab notebook’s filename (without path),
+    using the metadata from get_ipynb. If unavailable, returns an empty string.
     """
-    notebook_name = {"value": None}
-
-    def _capture(name):
-        notebook_name["value"] = name
-
-    _colab_output.register_callback('notebook_name', _capture)
-
-    js = """
-    (async () => {
-      const name = document.title.split(' - ')[0];
-      google.colab.kernel.invokeFunction('notebook_name', [name], {});
-    })();
-    """
-    _colab_output.eval_js(js)
-
-    t0 = time.time()
-    while time.time() - t0 < timeout:
-        if notebook_name["value"]:
-            return notebook_name["value"]
-        time.sleep(0.05)
-
-    # Fallback: try metadata (may be empty if unsaved)
     try:
-        md = _colab_output.eval_js("google.colab.kernel.accessRange()")  # triggers get_ipynb
         from google.colab import _message
         metadata = _message.blocking_request('get_ipynb')['ipynb']
-        return metadata.get("metadata", {}).get("colab", {}).get("name", "")
+        return metadata.get('metadata', {}).get('colab', {}).get('name', '')
     except Exception:
         return ""
 
@@ -52,7 +26,14 @@ def nbqa(line):
     tool = line.strip()
     notebook = get_notebook_name()
     if not notebook:
-        print("Could not determine notebook name. Using '*.ipynb'")
+        print("Could not determine notebook name; using '*.ipynb'")
         notebook = "*.ipynb"
+    
     print(f"Running nbqa {tool} on notebook: {notebook}")
-    return os.system(f'nbqa {tool} "{notebook}"')
+    
+    # Use subprocess to run the command
+    try:
+        result = subprocess.run(['nbqa', tool, notebook], check=True, text=True, capture_output=True)
+        print(result.stdout)  # Print the output of the command
+    except subprocess.CalledProcessError as e:
+        print(f"Error running nbqa: {e.stderr}")

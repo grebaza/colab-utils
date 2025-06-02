@@ -2,8 +2,6 @@
 
 import os
 import subprocess
-import requests
-import urllib.parse
 
 from IPython.core.magic import register_line_magic
 from google.colab import drive

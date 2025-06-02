@@ -7,26 +7,32 @@ import urllib.parse
 
 from IPython.core.magic import register_line_magic
 from google.colab import drive
+
 # Mount Google Drive (if not already mounted)
 try:
     drive.mount('/content/drive', force_remount=False)
 except Exception as e:
     print(f"Error mounting Google Drive: {e}")
 
-def locate_nb(set_singular=True):
-    """Locate the current notebook path in Google Drive."""
+def locate_nb(notebook_name=None, set_singular=True):
+    """Locate the notebook path in Google Drive or temporary Colab directory."""
     found_files = []
-    paths = ['/content/drive/MyDrive']  # Default Google Drive path
-    nb_address = 'http://172.28.0.2:9000/api/sessions'
+    paths = ['/content/drive/MyDrive/Colab Notebooks', '/content']  # Search in Drive and temp dir
+
+    # If no notebook name provided, prompt user or use a fallback
+    if not notebook_name:
+        print("Warning: Notebook name not provided. Please specify the notebook name or ensure it's saved in Google Drive.")
+        return None
+
     try:
-        response = requests.get(nb_address).json()
-        name = urllib.parse.unquote(response[0]['name'])
         for path in paths:
-            for dirpath, _, files in os.walk(path):
-                for file in files:
-                    if file == name:
-                        found_files.append(os.path.join(dirpath, file))
+            if os.path.exists(path):
+                for dirpath, _, files in os.walk(path):
+                    for file in files:
+                        if file == notebook_name:
+                            found_files.append(os.path.join(dirpath, file))
         found_files = list(set(found_files))
+        
         if len(found_files) == 1:
             nb_dir = os.path.dirname(found_files[0])
             if set_singular:
@@ -34,11 +40,12 @@ def locate_nb(set_singular=True):
                 os.chdir(nb_dir)
                 return found_files[0]
         elif not found_files:
-            print('Notebook file not found.')
+            print(f'Notebook "{notebook_name}" not found in {paths}.')
             return None
         elif len(found_files) > 1:
             print('Multiple matches found, returning list of possible locations.')
-            return found_files
+            print(found_files)
+            return found_files[0]  # Return first match as fallback
     except Exception as e:
         print(f"Error locating notebook: {e}")
         return None

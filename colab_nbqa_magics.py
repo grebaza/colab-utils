@@ -44,45 +44,21 @@ def current_notebook_name() -> str:
 @register_line_magic
 def nbqa(line):
     """
-    %nbqa <tool> [tool_args...] [notebook.ipynb or any file.ext]
-
-    - Detects a filename among the arguments (or uses current notebook name).
-    - Passes all other args to nbqa.
+    Pass all arguments verbatim to nbqa.
+    Usage examples in Colab:
+      %nbqa black my_notebook.ipynb
+      %nbqa flake8 --ignore=E203 path/to/notebook.ipynb
     """
-    parts = shlex.split(line or "")
-    if not parts:
-        print("Usage: %nbqa <tool> [tool_args...] [file.ext]")
+    line = line.strip()
+    if not line:
+        print("Usage: %nbqa <nbqa-arguments>")
         return
 
-    tool, *rest = parts
+    # Split the line into arguments and prepend 'nbqa'
+    args = shlex.split(line)
+    cmd = ["nbqa"] + args
 
-    # Identify file argument (first matching file in search paths)
-    file_path = None
-    tool_args = []
-    for arg in rest:
-        try:
-            candidate = locate_file(arg)
-            file_path = candidate
-            continue  # skip adding to tool_args
-        except FileNotFoundError:
-            tool_args.append(arg)
-
-    # If no file found among args, try current notebook name
-    if not file_path:
-        name = current_notebook_name()
-        if not name:
-            print(
-                "Error: Cannot determine notebook name; please specify a file explicitly."
-            )
-            return
-        try:
-            file_path = locate_file(name)
-        except FileNotFoundError as e:
-            print(e)
-            return
-
-    cmd = ["nbqa", tool] + [file_path] + tool_args
-    print("Running:", " ".join(shlex.quote(x) for x in cmd))
+    print("Running:", " ".join(shlex.quote(c) for c in cmd))
 
     proc = subprocess.run(cmd, check=False, capture_output=True, text=True)
     if proc.stdout:

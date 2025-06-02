@@ -19,15 +19,17 @@ def get_notebook_name() -> str:
 @register_line_magic
 def nbqa(line):
     """
-    Run nbqa with the specified tool on the current notebook.
-    Usage: %nbqa <tool_name>
-    Example: %nbqa ruff
+    Run nbqa with the specified tool on the current notebook or a specified notebook.
+    Usage: %nbqa <tool_name> [notebook_name]
+    Example: %nbqa ruff my_notebook.ipynb
     """
-    tool = line.strip()
-    notebook = get_notebook_name()
-    if not notebook:
-        print("Could not determine notebook name; using '*.ipynb'")
-        notebook = "*.ipynb"
+    args = line.strip().split()
+    tool = args[0] if args else ""
+    notebook = args[1] if len(args) > 1 else get_notebook_name()
+    
+    if not tool:
+        print("Please specify a tool to run with nbqa.")
+        return
     
     print(f"Running nbqa {tool} on notebook: {notebook}")
     

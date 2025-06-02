@@ -4,7 +4,7 @@ import os
 import subprocess
 
 from IPython.core.magic import register_line_magic
-from google.colab import drive
+from google.colab import drive, output as colab_output
 
 # Mount Google Drive (if not already mounted)
 try:
@@ -57,7 +57,7 @@ def get_nb_name() -> str:
     """
     try:
         # Execute JavaScript to get the notebook name from the Jupyter environment
-        notebook_name = google.colab.output.eval_js(
+        notebook_name = colab_output.eval_js(
             'Jupyter.notebook.notebook_name'
         )
         return notebook_name

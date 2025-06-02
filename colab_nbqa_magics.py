@@ -22,7 +22,6 @@ def get_notebook_name(timeout: float = 2.0) -> str:
     js = """
     (async () => {
       const name = document.title.split(' - ')[0];
-      console.log("nb:" + name);
       google.colab.kernel.invokeFunction('notebook_name', [name], {});
     })();
     """

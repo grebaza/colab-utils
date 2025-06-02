@@ -2,85 +2,78 @@
 
 import os
 import subprocess
-
 from IPython.core.magic import register_line_magic
 from google.colab import drive, output as colab_output
 
 # Mount Google Drive (if not already mounted)
 try:
     drive.mount('/content/drive', force_remount=False)
-except Exception as e:
-    print(f"Error mounting Google Drive: {e}")
+except Exception:
+    pass
 
-def locate_nb(notebook_name=None, set_singular=True):
-    """Locate the notebook path in Google Drive or temporary Colab directory."""
-    found_files = []
-    paths = ['/content/drive/MyDrive/Colab Notebooks', '/content']  # Search in Drive and temp dir
-
-    # If no notebook name provided, prompt user or use a fallback
-    if not notebook_name:
-        print("Warning: Notebook name not provided. Please specify the notebook name or ensure it's saved in Google Drive.")
-        return None
-
-    try:
-        for path in paths:
-            if os.path.exists(path):
-                for dirpath, _, files in os.walk(path):
-                    for file in files:
-                        if file == notebook_name:
-                            found_files.append(os.path.join(dirpath, file))
-        found_files = list(set(found_files))
-        
-        if len(found_files) == 1:
-            nb_dir = os.path.dirname(found_files[0])
-            if set_singular:
-                print(f'Singular location found, setting directory: {nb_dir}')
-                # os.chdir(nb_dir)
-                return found_files[0]
-        elif not found_files:
-            print(f'Notebook "{notebook_name}" not found in {paths}.')
-            return None
-        elif len(found_files) > 1:
-            print('Multiple matches found, returning list of possible locations.')
-            print(found_files)
-            return found_files[0]  # Return first match as fallback
-    except Exception as e:
-        print(f"Error locating notebook: {e}")
-        return None
-    return None
+def locate_nb(notebook_name: str) -> str:
+    """
+    Locate the full path of the notebook in Google Drive or /content.
+    Returns the first match or raises FileNotFoundError.
+    """
+    search_paths = [
+        '/content/drive/MyDrive/Colab Notebooks',
+        '/content'
+    ]
+    matches = []
+    for base in search_paths:
+        if os.path.isdir(base):
+            for dirpath, _, files in os.walk(base):
+                if notebook_name in files:
+                    matches.append(os.path.join(dirpath, notebook_name))
+    if not matches:
+        raise FileNotFoundError(f'Notebook "{notebook_name}" not found in {search_paths}')
+    return matches[0]  # return first match
 
 def get_notebook_name() -> str:
     """
-    Return the current Colab notebook’s filename (without path),
-    using the metadata from get_ipynb. If unavailable, returns an empty string.
+    Returns the current Colab notebook’s filename (without path) via metadata.
     """
     try:
         from google.colab import _message
-        metadata = _message.blocking_request('get_ipynb')['ipynb']
-        return metadata.get('metadata', {}).get('colab', {}).get('name', '')
+        md = _message.blocking_request('get_ipynb')['ipynb']
+        return md.get('metadata', {}).get('colab', {}).get('name', '')
     except Exception:
         return ""
 
 @register_line_magic
 def nbqa(line):
     """
-    Run nbqa with the specified tool on the current notebook or a specified notebook.
-    Usage: %nbqa <tool_name> [notebook_name]
-    Example: %nbqa ruff my_notebook.ipynb
+    Run nbqa with the specified tool on the current notebook (or given notebook name).
+    Usage: %nbqa <tool> [notebook.ipynb]
     """
-    args = line.strip().split()
-    tool = args[0] if args else ""
-    notebook = args[1] if len(args) > 1 else locate_nb()
-    
-    if not tool:
-        print("Please specify a tool to run with nbqa.")
+    parts = line.strip().split()
+    if not parts:
+        print("Usage: %nbqa <tool> [notebook.ipynb]")
         return
-    
-    print(f"Running nbqa {tool} on notebook: {notebook}")
-    
-    # Use subprocess to run the command
+    tool = parts[0]
+    if len(parts) > 1:
+        nb_name = parts[1]
+    else:
+        nb_name = get_notebook_name()
+        if not nb_name:
+            print("Error: Could not determine current notebook name. Provide notebook file explicitly.")
+            return
+
     try:
-        result = subprocess.run(['nbqa', tool, notebook], check=True, text=True, capture_output=True)
-        print(result.stdout)  # Print the output of the command
+        nb_path = locate_nb(nb_name)
+    except FileNotFoundError as e:
+        print(e)
+        return
+
+    print(f'Running: nbqa {tool} "{nb_path}"')
+    try:
+        result = subprocess.run(
+            ['nbqa', tool, nb_path],
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        print(result.stdout)
     except subprocess.CalledProcessError as e:
-        print(f"Error running nbqa: {e.stderr}")
+        print(e.stderr)
